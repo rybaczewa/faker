@@ -1,5 +1,74 @@
 import type { Faker } from '../..';
 import { FakerError } from '../../errors/faker-error';
+import type { LiteralUnion } from '../../utils/types';
+
+export type AlphaChar =
+  | 'a'
+  | 'b'
+  | 'c'
+  | 'd'
+  | 'e'
+  | 'f'
+  | 'g'
+  | 'h'
+  | 'i'
+  | 'j'
+  | 'k'
+  | 'l'
+  | 'm'
+  | 'n'
+  | 'o'
+  | 'p'
+  | 'q'
+  | 'r'
+  | 's'
+  | 't'
+  | 'u'
+  | 'v'
+  | 'w'
+  | 'x'
+  | 'y'
+  | 'z'
+  | 'A'
+  | 'B'
+  | 'C'
+  | 'D'
+  | 'E'
+  | 'F'
+  | 'G'
+  | 'H'
+  | 'I'
+  | 'J'
+  | 'K'
+  | 'L'
+  | 'M'
+  | 'N'
+  | 'O'
+  | 'P'
+  | 'Q'
+  | 'R'
+  | 'S'
+  | 'T'
+  | 'U'
+  | 'V'
+  | 'W'
+  | 'X'
+  | 'Y'
+  | 'Z';
+
+export type NumericChar =
+  | '0'
+  | '1'
+  | '2'
+  | '3'
+  | '4'
+  | '5'
+  | '6'
+  | '7'
+  | '8'
+  | '9';
+
+export type AlphaNumericChar = AlphaChar | NumericChar;
 
 /**
  * Method to reduce array of characters.
@@ -160,7 +229,7 @@ export class Random {
       | {
           count?: number;
           upcase?: boolean;
-          bannedChars?: readonly string[];
+          bannedChars?: readonly LiteralUnion<AlphaChar>[] | string;
         } = {}
   ): string {
     if (typeof options === 'number') {
@@ -168,7 +237,13 @@ export class Random {
         count: options,
       };
     }
-    const { count = 1, upcase = false, bannedChars = [] } = options;
+
+    const { count = 1, upcase = false } = options;
+    let { bannedChars = [] } = options;
+
+    if (typeof bannedChars === 'string') {
+      bannedChars = bannedChars.split('');
+    }
 
     let charsArray = [
       'a',
@@ -223,9 +298,15 @@ export class Random {
    */
   alphaNumeric(
     count: number = 1,
-    options: { bannedChars?: readonly string[] } = {}
+    options: {
+      bannedChars?: readonly LiteralUnion<AlphaNumericChar>[] | string;
+    } = {}
   ): string {
-    const { bannedChars = [] } = options;
+    let { bannedChars = [] } = options;
+
+    if (typeof bannedChars === 'string') {
+      bannedChars = bannedChars.split('');
+    }
 
     let charsArray = [
       '0',
@@ -301,14 +382,19 @@ export class Random {
     length: number = 1,
     options: {
       allowLeadingZeros?: boolean;
-      bannedDigits?: readonly string[];
+      bannedDigits?: readonly LiteralUnion<NumericChar>[] | string;
     } = {}
   ): string {
     if (length <= 0) {
       return '';
     }
 
-    const { allowLeadingZeros = false, bannedDigits = [] } = options;
+    const { allowLeadingZeros = false } = options;
+    let { bannedDigits = [] } = options;
+
+    if (typeof bannedDigits === 'string') {
+      bannedDigits = bannedDigits.split('');
+    }
 
     const allowedDigits = '0123456789'
       .split('')
