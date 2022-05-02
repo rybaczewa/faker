@@ -490,16 +490,62 @@ describe('helpers', () => {
     });
   }
 
-  // Create and log-back the seed for debug purposes
-  faker.seed(Math.ceil(Math.random() * 1_000_000_000));
-
   describe(`random seeded tests for seed ${JSON.stringify(
-    faker.seedValue
+    faker.seed()
   )}`, () => {
     for (let i = 1; i <= NON_SEEDED_BASED_RUN; i++) {
-      describe('randomize()', () => {
-        // Will be marked as deprecated soon
+      describe('arrayElement', () => {
+        it('should return a random element in the array', () => {
+          const testArray = ['hello', 'to', 'you', 'my', 'friend'];
+          const actual = faker.helpers.arrayElement(testArray);
 
+          expect(testArray).toContain(actual);
+        });
+
+        it('should return a random element in the array when there is only 1', () => {
+          const testArray = ['hello'];
+          const actual = faker.helpers.arrayElement(testArray);
+
+          expect(actual).toBe('hello');
+        });
+      });
+
+      describe('arrayElements', () => {
+        it('should return a subset with random elements in the array', () => {
+          const testArray = ['hello', 'to', 'you', 'my', 'friend'];
+          const subset = faker.helpers.arrayElements(testArray);
+
+          // Check length
+          expect(subset.length).toBeGreaterThanOrEqual(1);
+          expect(subset.length).toBeLessThanOrEqual(testArray.length);
+
+          // Check elements
+          subset.forEach((element) => {
+            expect(testArray).toContain(element);
+          });
+
+          // Check uniqueness
+          expect(subset).toHaveLength(new Set(subset).size);
+        });
+
+        it('should return a subset of fixed length with random elements in the array', () => {
+          const testArray = ['hello', 'to', 'you', 'my', 'friend'];
+          const subset = faker.helpers.arrayElements(testArray, 3);
+
+          // Check length
+          expect(subset).toHaveLength(3);
+
+          // Check elements
+          subset.forEach((element) => {
+            expect(testArray).toContain(element);
+          });
+
+          // Check uniqueness
+          expect(subset).toHaveLength(new Set(subset).size);
+        });
+      });
+
+      describe('randomize()', () => {
         it('returns a random element from an array', () => {
           const arr = ['a', 'b', 'c'];
           const elem = faker.helpers.randomize(arr);
@@ -786,6 +832,7 @@ describe('helpers', () => {
           expect(card).toBeTypeOf('object');
         });
       });
+
       describe('userCard()', () => {
         it('returns an object', () => {
           const card = faker.helpers.userCard();
@@ -806,8 +853,68 @@ describe('helpers', () => {
         });
       });
 
+      describe('maybe', () => {
+        it('should always return the callback result when probability is 1', () => {
+          const actual = faker.helpers.maybe(() => 'foo', { probability: 1 });
+
+          expect(actual).toBe('foo');
+        });
+
+        it('should never return the callback result when probability is 0', () => {
+          const actual = faker.helpers.maybe(() => expect.fail(), {
+            probability: 0,
+          });
+
+          expect(actual).toBeUndefined();
+        });
+
+        it('should not mutate the input object', () => {
+          const input = Object.freeze({
+            probability: 0.4,
+          });
+
+          expect(() => faker.helpers.maybe(() => 'foo', input)).not.toThrow();
+        });
+      });
+
+      describe('objectKey', () => {
+        it('should return a random key', () => {
+          const testObject = {
+            hello: 'to',
+            you: 'my',
+            friend: '!',
+          };
+          const actual = faker.helpers.objectKey(testObject);
+
+          expect(Object.keys(testObject)).toContain(actual);
+        });
+
+        it('should return undefined if given object is empty', () => {
+          const actual = faker.helpers.objectKey({});
+          expect(actual).toBeUndefined();
+        });
+      });
+
+      describe('objectValue', () => {
+        it('should return a random value', () => {
+          const testObject = {
+            hello: 'to',
+            you: 'my',
+            friend: '!',
+          };
+          const actual = faker.helpers.objectValue(testObject);
+
+          expect(Object.values(testObject)).toContain(actual);
+        });
+
+        it('should return undefined if given object is empty', () => {
+          const actual = faker.helpers.objectValue({});
+          expect(actual).toBeUndefined();
+        });
+      });
+
       describe('deprecation warnings', () => {
-        it.each([['randomize', 'random.arrayElement']])(
+        it.each([['randomize', 'helpers.arrayElement']])(
           'should warn user that function helpers.%s is deprecated',
           (functionName, newLocation) => {
             const spy = vi.spyOn(console, 'warn');
@@ -823,6 +930,7 @@ describe('helpers', () => {
       });
     }
   });
+
   describe('deprecation warnings', () => {
     it.each(['createCard', 'contextualCard', 'userCard'])(
       'should warn user that function random.%s is deprecated',

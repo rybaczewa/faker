@@ -112,7 +112,8 @@ export interface Transaction {
 }
 
 /**
- * Module with various helper methods that don't fit in a particular category.
+ * Module with various helper methods that transform the method input rather than returning values from locales.
+ * The transformation process may call methods that use the locale data.
  */
 export class Helpers {
   constructor(private readonly faker: Faker) {
@@ -126,14 +127,14 @@ export class Helpers {
   }
 
   /**
-   * Backward-compatibility. Use `faker.random.arrayElement()` instead.
+   * Backward-compatibility. Use `faker.helpers.arrayElement()` instead.
    *
    * Takes an array and returns a random element of the array.
    *
    * @template T The type of the entries to pick from.
    * @param array The array to select an element from.
    *
-   * @see faker.random.arrayElement()
+   * @see faker.helpers.arrayElement()
    *
    * @example
    * faker.helpers.randomize() // 'c'
@@ -146,11 +147,11 @@ export class Helpers {
   ): T {
     deprecated({
       deprecated: 'faker.helpers.randomize()',
-      proposed: 'faker.random.arrayElement()',
+      proposed: 'faker.helpers.arrayElement()',
       // since: 'v5.0.0', (?)
       until: 'v7.0.0',
     });
-    return this.faker.random.arrayElement(array);
+    return this.arrayElement(array);
   }
 
   /**
@@ -248,10 +249,10 @@ export class Helpers {
       if (string.charAt(i) === '#') {
         str += this.faker.datatype.number(9);
       } else if (string.charAt(i) === '?') {
-        str += this.faker.random.arrayElement(alpha);
+        str += this.arrayElement(alpha);
       } else if (string.charAt(i) === '*') {
         str += this.faker.datatype.boolean()
-          ? this.faker.random.arrayElement(alpha)
+          ? this.arrayElement(alpha)
           : this.faker.datatype.number(9);
       } else {
         str += string.charAt(i);
@@ -685,10 +686,125 @@ export class Helpers {
       name: [this.faker.finance.accountName(), this.faker.finance.mask()].join(
         ' '
       ),
-      type: this.faker.random.arrayElement(
-        this.faker.definitions.finance.transaction_type
-      ),
+      type: this.arrayElement(this.faker.definitions.finance.transaction_type),
       account: this.faker.finance.account(),
     };
+  }
+
+  /**
+   * Returns the result of the callback if the probability check was successful, otherwise `undefined`.
+   *
+   * @template T The type of result of the given callback.
+   * @param callback The callback to that will be invoked if the probability check was successful.
+   * @param options The options to use. Defaults to `{}`.
+   * @param options.probability The probability (`[0.00, 1.00]`) of the callback being invoked. Defaults to `0.5`.
+   *
+   * @example
+   * faker.helpers.maybe(() => 'Hello World!') // 'Hello World!'
+   * faker.helpers.maybe(() => 'Hello World!', { probability: 0.1 }) // undefined
+   * faker.helpers.maybe(() => 'Hello World!', { probability: 0.9 }) // 'Hello World!'
+   */
+  maybe<T>(
+    callback: () => T,
+    options: { probability?: number } = {}
+  ): T | undefined {
+    const { probability = 0.5 } = options;
+    if (this.faker.datatype.float({ min: 0, max: 1 }) < probability) {
+      return callback();
+    }
+    return undefined;
+  }
+
+  /**
+   * Returns a random key from given object or `undefined` if no key could be found.
+   *
+   * @param object The object to be used.
+   *
+   * @example
+   * faker.helpers.objectKey({ myProperty: 'myValue' }) // 'myProperty'
+   */
+  objectKey<T extends Record<string, unknown>>(object: T): keyof T {
+    const array: Array<keyof T> = Object.keys(object);
+    return this.arrayElement(array);
+  }
+
+  /**
+   * Returns a random value from given object or `undefined` if no key could be found.
+   *
+   * @param object The object to be used.
+   *
+   * @example
+   * faker.helpers.objectValue({ myProperty: 'myValue' }) // 'myValue'
+   */
+  objectValue<T extends Record<string, unknown>>(object: T): T[keyof T] {
+    const key = this.faker.helpers.objectKey(object);
+    return object[key];
+  }
+
+  /**
+   * Returns random element from the given array.
+   *
+   * @template T The type of the entries to pick from.
+   * @param array Array to pick the value from.
+   *
+   * @example
+   * faker.helpers.arrayElement(['cat', 'dog', 'mouse']) // 'dog'
+   */
+  arrayElement<T = string>(
+    // TODO @Shinigami92 2022-04-30: We want to remove this default value, but currently it's not possible because some definitions could be empty
+    // See https://github.com/faker-js/faker/issues/893
+    array: ReadonlyArray<T> = ['a', 'b', 'c'] as unknown as ReadonlyArray<T>
+  ): T {
+    const index =
+      array.length > 1
+        ? this.faker.datatype.number({ max: array.length - 1 })
+        : 0;
+
+    return array[index];
+  }
+
+  /**
+   * Returns a subset with random elements of the given array in random order.
+   *
+   * @template T The type of the entries to pick from.
+   * @param array Array to pick the value from.
+   * @param count Number of elements to pick.
+   *    When not provided, random number of elements will be picked.
+   *    When value exceeds array boundaries, it will be limited to stay inside.
+   *
+   * @example
+   * faker.helpers.arrayElements(['cat', 'dog', 'mouse']) // ['mouse', 'cat']
+   * faker.helpers.arrayElements([1, 2, 3, 4, 5], 2) // [4, 2]
+   */
+  arrayElements<T>(
+    // TODO @Shinigami92 2022-04-30: We want to remove this default value, but currently it's not possible because some definitions could be empty
+    // See https://github.com/faker-js/faker/issues/893
+    array: ReadonlyArray<T> = ['a', 'b', 'c'] as unknown as ReadonlyArray<T>,
+    count?: number
+  ): T[] {
+    if (typeof count !== 'number') {
+      count = this.faker.datatype.number({ min: 1, max: array.length });
+    } else if (count > array.length) {
+      count = array.length;
+    } else if (count < 0) {
+      count = 0;
+    }
+
+    const arrayCopy = array.slice(0);
+    let i = array.length;
+    const min = i - count;
+    let temp: T;
+    let index: number;
+
+    while (i-- > min) {
+      index = Math.floor(
+        (i + 1) * this.faker.datatype.float({ min: 0, max: 0.99 })
+      );
+      temp = arrayCopy[index];
+      arrayCopy[index] = arrayCopy[i];
+      arrayCopy[i] = temp;
+    }
+
+    return arrayCopy.slice(min);
   }
 }

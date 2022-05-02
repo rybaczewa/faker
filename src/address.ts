@@ -1,75 +1,6 @@
 import type { Faker } from '.';
 
 /**
- * Converts degrees to radians.
- *
- * @param degrees Degrees.
- */
-function degreesToRadians(degrees: number): number {
-  return degrees * (Math.PI / 180.0);
-}
-
-/**
- * Converts radians to degrees.
- *
- * @param radians Radians.
- */
-function radiansToDegrees(radians: number): number {
-  return radians * (180.0 / Math.PI);
-}
-
-/**
- * Converts kilometers to miles.
- *
- * @param miles Miles.
- */
-function kilometersToMiles(miles: number): number {
-  return miles * 0.621371;
-}
-
-/**
- * Calculates coordinates with offset.
- *
- * @param coordinate Coordinate.
- * @param bearing Bearing.
- * @param distance Distance.
- * @param isMetric Metric: true, Miles: false.
- */
-function coordinateWithOffset(
-  coordinate: [latitude: number, longitude: number],
-  bearing: number,
-  distance: number,
-  isMetric: boolean
-): [latitude: number, longitude: number] {
-  const R = 6378.137; // Radius of the Earth (http://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html)
-  const d = isMetric ? distance : kilometersToMiles(distance); // Distance in km
-
-  const lat1 = degreesToRadians(coordinate[0]); //Current lat point converted to radians
-  const lon1 = degreesToRadians(coordinate[1]); //Current long point converted to radians
-
-  const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(d / R) +
-      Math.cos(lat1) * Math.sin(d / R) * Math.cos(bearing)
-  );
-
-  let lon2 =
-    lon1 +
-    Math.atan2(
-      Math.sin(bearing) * Math.sin(d / R) * Math.cos(lat1),
-      Math.cos(d / R) - Math.sin(lat1) * Math.sin(lat2)
-    );
-
-  // Keep longitude in range [-180, 180]
-  if (lon2 > degreesToRadians(180)) {
-    lon2 = lon2 - degreesToRadians(360);
-  } else if (lon2 < degreesToRadians(-180)) {
-    lon2 = lon2 + degreesToRadians(360);
-  }
-
-  return [radiansToDegrees(lat2), radiansToDegrees(lon2)];
-}
-
-/**
  * Module to generate addresses and locations.
  */
 export class Address {
@@ -104,7 +35,7 @@ export class Address {
       if (typeof localeFormat === 'string') {
         format = localeFormat;
       } else {
-        format = this.faker.random.arrayElement(localeFormat);
+        format = this.faker.helpers.arrayElement(localeFormat);
       }
     }
     return this.faker.helpers.replaceSymbols(format);
@@ -177,7 +108,7 @@ export class Address {
    * faker.address.cityPrefix() // 'East'
    */
   cityPrefix(): string {
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.city_prefix
     );
   }
@@ -189,7 +120,7 @@ export class Address {
    * faker.address.citySuffix() // 'mouth'
    */
   citySuffix(): string {
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.city_suffix
     );
   }
@@ -201,7 +132,7 @@ export class Address {
    * faker.address.cityName() // 'San Rafael'
    */
   cityName(): string {
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.city_name
     );
   }
@@ -213,7 +144,7 @@ export class Address {
    * faker.address.buildingNumber() // '379'
    */
   buildingNumber(): string {
-    const format = this.faker.random.arrayElement(
+    const format = this.faker.helpers.arrayElement(
       this.faker.definitions.address.building_number
     );
 
@@ -269,7 +200,7 @@ export class Address {
    * faker.address.streetSuffix() // 'Streets'
    */
   streetSuffix(): string {
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.street_suffix
     );
   }
@@ -281,7 +212,7 @@ export class Address {
    * fakerGH.address.streetPrefix() // 'Boame'
    */
   streetPrefix(): string {
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.street_prefix
     );
   }
@@ -295,7 +226,7 @@ export class Address {
    */
   secondaryAddress(): string {
     return this.faker.helpers.replaceSymbolWithNumber(
-      this.faker.random.arrayElement(
+      this.faker.helpers.arrayElement(
         this.faker.definitions.address.secondary_address
       )
     );
@@ -308,7 +239,7 @@ export class Address {
    * faker.address.county() // 'Cambridgeshire'
    */
   county(): string {
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.county
     );
   }
@@ -320,7 +251,7 @@ export class Address {
    * faker.address.country() // 'Greece'
    */
   country(): string {
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.country
     );
   }
@@ -340,7 +271,7 @@ export class Address {
     const key: keyof typeof this.faker.definitions.address =
       alphaCode === 'alpha-3' ? 'country_code_alpha_3' : 'country_code';
 
-    return this.faker.random.arrayElement(this.faker.definitions.address[key]);
+    return this.faker.helpers.arrayElement(this.faker.definitions.address[key]);
   }
 
   /**
@@ -350,7 +281,9 @@ export class Address {
    * faker.address.state() // 'Georgia'
    */
   state(): string {
-    return this.faker.random.arrayElement(this.faker.definitions.address.state);
+    return this.faker.helpers.arrayElement(
+      this.faker.definitions.address.state
+    );
   }
 
   /**
@@ -360,7 +293,7 @@ export class Address {
    * faker.address.stateAbbr() // 'ND'
    */
   stateAbbr(): string {
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.state_abbr
     );
   }
@@ -424,11 +357,11 @@ export class Address {
    */
   direction(useAbbr: boolean = false): string {
     if (!useAbbr) {
-      return this.faker.random.arrayElement(
+      return this.faker.helpers.arrayElement(
         this.faker.definitions.address.direction
       );
     }
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.direction_abbr
     );
   }
@@ -446,11 +379,11 @@ export class Address {
    */
   cardinalDirection(useAbbr: boolean = false): string {
     if (!useAbbr) {
-      return this.faker.random.arrayElement(
+      return this.faker.helpers.arrayElement(
         this.faker.definitions.address.direction.slice(0, 4)
       );
     }
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.direction_abbr.slice(0, 4)
     );
   }
@@ -468,11 +401,11 @@ export class Address {
    */
   ordinalDirection(useAbbr: boolean = false): string {
     if (!useAbbr) {
-      return this.faker.random.arrayElement(
+      return this.faker.helpers.arrayElement(
         this.faker.definitions.address.direction.slice(4, 8)
       );
     }
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.direction_abbr.slice(4, 8)
     );
   }
@@ -493,34 +426,52 @@ export class Address {
   // TODO ST-DDT 2022-02-10: Allow coordinate parameter to be [string, string].
   nearbyGPSCoordinate(
     coordinate?: [latitude: number, longitude: number],
-    radius?: number,
-    isMetric?: boolean
+    radius: number = 10,
+    isMetric: boolean = false
   ): [latitude: string, longitude: string] {
     // If there is no coordinate, the best we can do is return a random GPS coordinate.
     if (coordinate === undefined) {
       return [this.latitude(), this.longitude()];
     }
 
-    radius = radius || 10.0;
-    isMetric = isMetric || false;
+    const angleRadians = this.faker.datatype.float({
+      min: 0,
+      max: 2 * Math.PI,
+      precision: 0.00001,
+    }); // in ° radians
 
-    // TODO: implement either a gaussian/uniform distribution of points in circular region.
-    // Possibly include param to function that allows user to choose between distributions.
+    const radiusMetric = isMetric ? radius : radius * 1.60934; // in km
+    const errorCorrection = 0.995; // avoid float issues
+    const distanceInKm =
+      this.faker.datatype.float({
+        min: 0,
+        max: radiusMetric,
+        precision: 0.001,
+      }) * errorCorrection; // in km
 
-    // This approach will likely result in a higher density of points near the center.
-    const randomCoord = coordinateWithOffset(
-      coordinate,
-      degreesToRadians(
-        this.faker.datatype.number({
-          min: 0,
-          max: 360,
-          precision: 1e-4,
-        })
-      ),
-      radius,
-      isMetric
-    );
-    return [randomCoord[0].toFixed(4), randomCoord[1].toFixed(4)];
+    /**
+     * The distance in km per degree for earth.
+     */
+    // TODO @Shinigami92 2022-04-26: Provide an option property to provide custom circumferences.
+    const kmPerDegree = 40_000 / 360; // in km/°
+
+    const distanceInDegree = distanceInKm / kmPerDegree; // in °
+
+    const newCoordinate: [latitude: number, longitude: number] = [
+      coordinate[0] + Math.sin(angleRadians) * distanceInDegree,
+      coordinate[1] + Math.cos(angleRadians) * distanceInDegree,
+    ];
+
+    // Box latitude [-90°, 90°]
+    newCoordinate[0] = newCoordinate[0] % 180;
+    if (newCoordinate[0] < -90 || newCoordinate[0] > 90) {
+      newCoordinate[0] = Math.sign(newCoordinate[0]) * 180 - newCoordinate[0];
+      newCoordinate[1] += 180;
+    }
+    // Box longitude [-180°, 180°]
+    newCoordinate[1] = (((newCoordinate[1] % 360) + 540) % 360) - 180;
+
+    return [newCoordinate[0].toFixed(4), newCoordinate[1].toFixed(4)];
   }
 
   /**
@@ -530,7 +481,7 @@ export class Address {
    * faker.address.timeZone() // 'Pacific/Guam'
    */
   timeZone(): string {
-    return this.faker.random.arrayElement(
+    return this.faker.helpers.arrayElement(
       this.faker.definitions.address.time_zone
     );
   }

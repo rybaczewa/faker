@@ -121,11 +121,8 @@ describe('finance', () => {
     });
   }
 
-  // Create and log-back the seed for debug purposes
-  faker.seed(Math.ceil(Math.random() * 1_000_000_000));
-
   describe(`random seeded tests for seed ${JSON.stringify(
-    faker.seedValue
+    faker.seed()
   )}`, () => {
     for (let i = 1; i <= NON_SEEDED_BASED_RUN; i++) {
       describe('account()', () => {
@@ -394,10 +391,8 @@ describe('finance', () => {
           expect(luhnCheck(faker.finance.creditCardNumber())).toBeTruthy();
         });
 
-        it('should ignore case for provider', () => {
-          const seed = faker.seedValue;
-
-          faker.seed(seed);
+        it('should ignore case for issuer', () => {
+          const seed = faker.seed();
           const actualNonLowerCase = faker.finance.creditCardNumber('ViSa');
 
           faker.seed(seed);
@@ -447,6 +442,16 @@ describe('finance', () => {
           number = faker.finance.creditCardNumber('234[5-9]#{999}L');
           expect(number).toMatch(/^234[5-9]\d{1000}$/);
           expect(luhnCheck(number)).toBeTruthy();
+        });
+      });
+
+      describe('creditCardIssuer()', () => {
+        it('should return a string', () => {
+          const issuer = faker.finance.creditCardIssuer();
+          expect(issuer).toBeTypeOf('string');
+          expect(Object.keys(faker.definitions.finance.credit_card)).toContain(
+            issuer
+          );
         });
       });
 

@@ -1,5 +1,38 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { faker } from '../src';
+import { times } from './support/times';
+
+function degreesToRadians(degrees: number) {
+  return degrees * (Math.PI / 180.0);
+}
+
+function kilometersToMiles(miles: number) {
+  return miles * 0.621371;
+}
+
+// http://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html
+const EQUATORIAL_EARTH_RADIUS = 6378.137;
+
+function haversine(
+  latitude1: number,
+  longitude1: number,
+  latitude2: number,
+  longitude2: number,
+  isMetric: boolean
+) {
+  const distanceLatitude = degreesToRadians(latitude2 - latitude1);
+  const distanceLongitude = degreesToRadians(longitude2 - longitude1);
+  const a =
+    Math.sin(distanceLatitude / 2) * Math.sin(distanceLatitude / 2) +
+    Math.cos(degreesToRadians(latitude1)) *
+      Math.cos(degreesToRadians(latitude2)) *
+      Math.sin(distanceLongitude / 2) *
+      Math.sin(distanceLongitude / 2);
+  const distance =
+    EQUATORIAL_EARTH_RADIUS * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return isMetric ? distance : kilometersToMiles(distance);
+}
 
 const seededRuns = [
   {
@@ -12,7 +45,7 @@ const seededRuns = [
       streetName: 'Valentine Isle',
       streetPrefix: 'b',
       streetSuffix: 'Isle',
-      streetAddressDigits: 4,
+      streetAddress: '7917 Lauryn Spur',
       fullStreetAddress: '7917 Lauryn Spur Apt. 410',
       secondaryAddress: 'Apt. 791',
       county: 'Berkshire',
@@ -29,7 +62,7 @@ const seededRuns = [
       cardinalDirection: 'East',
       cardinalDirectionAbbr: 'E',
       timeZone: 'Europe/Amsterdam',
-      nearbyGpsCoordinates: ['-0.0394', '0.0396'],
+      nearbyGpsCoordinates: ['0.0814', '-0.0809'],
     },
   },
   {
@@ -42,7 +75,7 @@ const seededRuns = [
       streetName: 'Carmelo Forks',
       streetPrefix: 'a',
       streetSuffix: 'Forks',
-      streetAddressDigits: 5,
+      streetAddress: '51225 Hammes Lodge',
       fullStreetAddress: '51225 Hammes Lodge Apt. 552',
       secondaryAddress: 'Apt. 512',
       county: 'Bedfordshire',
@@ -59,7 +92,7 @@ const seededRuns = [
       cardinalDirection: 'East',
       cardinalDirectionAbbr: 'E',
       timeZone: 'Africa/Casablanca',
-      nearbyGpsCoordinates: ['-0.0042', '0.0557'],
+      nearbyGpsCoordinates: ['0.0806', '-0.0061'],
     },
   },
   {
@@ -72,7 +105,7 @@ const seededRuns = [
       streetName: 'Trantow Via',
       streetPrefix: 'c',
       streetSuffix: 'Via',
-      streetAddressDigits: 3,
+      streetAddress: '487 Zieme Flat',
       fullStreetAddress: '487 Zieme Flat Apt. 616',
       secondaryAddress: 'Suite 487',
       county: 'Cambridgeshire',
@@ -89,12 +122,30 @@ const seededRuns = [
       cardinalDirection: 'West',
       cardinalDirectionAbbr: 'W',
       timeZone: 'Asia/Magadan',
-      nearbyGpsCoordinates: ['0.0503', '-0.0242'],
+      nearbyGpsCoordinates: ['-0.0287', '0.0596'],
     },
   },
 ];
 
 const NON_SEEDED_BASED_RUN = 5;
+
+const functionNames = [
+  'city',
+  'cityPrefix',
+  'citySuffix',
+  'cityName',
+  'streetName',
+  'streetPrefix',
+  'streetSuffix',
+  'secondaryAddress',
+  'county',
+  'country',
+  'countryCode',
+  'state',
+  'stateAbbr',
+  'zipCode',
+  'timeZone',
+];
 
 describe('address', () => {
   afterEach(() => {
@@ -103,138 +154,29 @@ describe('address', () => {
 
   for (const { seed, expectations } of seededRuns) {
     describe(`seed: ${seed}`, () => {
-      it('city()', () => {
-        faker.seed(seed);
+      for (const functionName of functionNames) {
+        it(`${functionName}()`, () => {
+          faker.seed(seed);
 
-        const city = faker.address.city();
-        expect(city).toEqual(expectations.city);
-      });
-
-      it('cityPrefix()', () => {
-        faker.seed(seed);
-
-        const cityPrefix = faker.address.cityPrefix();
-        expect(cityPrefix).toEqual(expectations.cityPrefix);
-      });
-
-      it('citySuffix()', () => {
-        faker.seed(seed);
-
-        const citySuffix = faker.address.citySuffix();
-        expect(citySuffix).toEqual(expectations.citySuffix);
-      });
-
-      it('cityName()', () => {
-        faker.seed(seed);
-
-        const cityName = faker.address.cityName();
-        expect(cityName).toEqual(expectations.cityName);
-      });
-
-      it('streetName()', () => {
-        faker.seed(seed);
-
-        const street_name = faker.address.streetName();
-        expect(street_name).toEqual(expectations.streetName);
-      });
+          const actual = faker.address[functionName]();
+          expect(actual).toBe(expectations[functionName]);
+        });
+      }
 
       describe('streetAddress()', () => {
-        it('should return a digit street number', () => {
+        it('should return street name with a building number', () => {
           faker.seed(seed);
 
           const address = faker.address.streetAddress();
-          const parts = address.split(' ');
 
-          expect(
-            parts[0].length,
-            `The street number should have ${expectations.streetAddressDigits} digits`
-          ).toStrictEqual(expectations.streetAddressDigits);
+          expect(address).toStrictEqual(expectations.streetAddress);
         });
 
-        describe('when useFulladdress is true', () => {
-          it('adds a secondary address to the result', () => {
-            faker.seed(seed);
-
-            const address = faker.address.streetAddress(true);
-            expect(address).toEqual(expectations.fullStreetAddress);
-          });
-        });
-      });
-
-      it('streetPrefix()', () => {
-        faker.seed(seed);
-
-        const streetPrefix = faker.address.streetPrefix();
-        expect(streetPrefix).toEqual(expectations.streetPrefix);
-      });
-
-      it('streetSuffix()', () => {
-        faker.seed(seed);
-
-        const streetSuffix = faker.address.streetSuffix();
-        expect(streetSuffix).toEqual(expectations.streetSuffix);
-      });
-
-      describe('secondaryAddress()', () => {
-        it('randomly chooses an Apt or Suite number', () => {
+        it('should return street name with a building number and a secondary address', () => {
           faker.seed(seed);
 
-          const address = faker.address.secondaryAddress();
-          expect(address).toEqual(expectations.secondaryAddress);
-        });
-      });
-
-      describe('county()', () => {
-        it('returns random county', () => {
-          faker.seed(seed);
-
-          const county = faker.address.county();
-          expect(county).toEqual(expectations.county);
-        });
-      });
-
-      describe('country()', () => {
-        it('returns random country', () => {
-          faker.seed(seed);
-
-          const country = faker.address.country();
-          expect(country).toEqual(expectations.country);
-        });
-      });
-
-      describe('countryCode()', () => {
-        it('returns random countryCode', () => {
-          faker.seed(seed);
-
-          const countryCode = faker.address.countryCode();
-          expect(countryCode).toEqual(expectations.countryCode);
-        });
-      });
-
-      describe('state()', () => {
-        it('returns random state', () => {
-          faker.seed(seed);
-
-          const state = faker.address.state();
-          expect(state).toEqual(expectations.state);
-        });
-      });
-
-      describe('stateAbbr()', () => {
-        it('returns random stateAbbr', () => {
-          faker.seed(seed);
-
-          const stateAbbr = faker.address.stateAbbr();
-          expect(stateAbbr).toEqual(expectations.stateAbbr);
-        });
-      });
-
-      describe('zipCode()', () => {
-        it('returns random zipCode', () => {
-          faker.seed(seed);
-
-          const zipCode = faker.address.zipCode();
-          expect(zipCode).toEqual(expectations.zipCode);
+          const address = faker.address.streetAddress(true);
+          expect(address).toEqual(expectations.fullStreetAddress);
         });
       });
 
@@ -328,15 +270,6 @@ describe('address', () => {
         });
       });
 
-      describe('timeZone()', () => {
-        it('returns random timeZone', () => {
-          faker.seed(seed);
-
-          const timeZone = faker.address.timeZone();
-          expect(timeZone).toEqual(expectations.timeZone);
-        });
-      });
-
       describe('nearbyGPSCoordinate()', () => {
         it('returns expected coordinates', () => {
           faker.seed(seed);
@@ -350,11 +283,8 @@ describe('address', () => {
     });
   }
 
-  // Create and log-back the seed for debug purposes
-  faker.seed(Math.ceil(Math.random() * 1_000_000_000));
-
   describe(`random seeded tests for seed ${JSON.stringify(
-    faker.seedValue
+    faker.seed()
   )}`, () => {
     for (let i = 1; i <= NON_SEEDED_BASED_RUN; i++) {
       describe('countryCode()', () => {
@@ -555,119 +485,46 @@ describe('address', () => {
       });
 
       describe('nearbyGPSCoordinate()', () => {
-        it('should return random gps coordinate within a distance of another one', () => {
-          function haversine(lat1, lon1, lat2, lon2, isMetric) {
-            function degreesToRadians(degrees) {
-              return degrees * (Math.PI / 180.0);
-            }
-            function kilometersToMiles(miles) {
-              return miles * 0.621371;
-            }
-            const R = 6378.137;
-            const dLat = degreesToRadians(lat2 - lat1);
-            const dLon = degreesToRadians(lon2 - lon1);
-            const a =
-              Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(degreesToRadians(lat1)) *
-                Math.cos(degreesToRadians(lat2)) *
-                Math.sin(dLon / 2) *
-                Math.sin(dLon / 2);
-            const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        for (const isMetric of [true, false]) {
+          for (const radius of times(100)) {
+            it.each(times(5))(
+              `should return random gps coordinate within a distance of another one (${JSON.stringify(
+                { isMetric, radius }
+              )}) (iter: %s)`,
+              () => {
+                const latitude1 = +faker.address.latitude();
+                const longitude1 = +faker.address.longitude();
 
-            return isMetric ? distance : kilometersToMiles(distance);
-          }
+                const coordinate = faker.address.nearbyGPSCoordinate(
+                  [latitude1, longitude1],
+                  radius,
+                  isMetric
+                );
 
-          let latFloat1: number;
-          let lonFloat1: number;
-          let isMetric: boolean;
+                expect(coordinate.length).toBe(2);
+                expect(coordinate[0]).toBeTypeOf('string');
+                expect(coordinate[1]).toBeTypeOf('string');
 
-          for (let i = 0; i < 10000; i++) {
-            latFloat1 = parseFloat(faker.address.latitude());
-            lonFloat1 = parseFloat(faker.address.longitude());
-            const radius = Math.random() * 99 + 1; // range of [1, 100)
-            isMetric = Math.round(Math.random()) === 1;
+                const latitude2 = +coordinate[0];
+                expect(latitude2).toBeGreaterThanOrEqual(-90.0);
+                expect(latitude2).toBeLessThanOrEqual(90.0);
 
-            const coordinate = faker.address.nearbyGPSCoordinate(
-              [latFloat1, lonFloat1],
-              radius,
-              isMetric
+                const longitude2 = +coordinate[1];
+                expect(longitude2).toBeGreaterThanOrEqual(-180.0);
+                expect(longitude2).toBeLessThanOrEqual(180.0);
+
+                const actualDistance = haversine(
+                  latitude1,
+                  longitude1,
+                  latitude2,
+                  longitude2,
+                  isMetric
+                );
+                expect(actualDistance).toBeLessThanOrEqual(radius);
+              }
             );
-
-            expect(coordinate.length).toBe(2);
-            expect(coordinate[0]).toBeTypeOf('string');
-            expect(coordinate[1]).toBeTypeOf('string');
-
-            const latFloat2 = parseFloat(coordinate[0]);
-            expect(latFloat2).toBeGreaterThanOrEqual(-90.0);
-            expect(latFloat2).toBeLessThanOrEqual(90.0);
-
-            const lonFloat2 = parseFloat(coordinate[1]);
-            expect(lonFloat2).toBeGreaterThanOrEqual(-180.0);
-            expect(lonFloat2).toBeLessThanOrEqual(180.0);
-
-            // Due to floating point math, and constants that are not extremely precise,
-            // returned points will not be strictly within the given radius of the input
-            // coordinate. Using a error of 1.0 to compensate.
-            const error = 1.0;
-            const actualDistance = haversine(
-              latFloat1,
-              lonFloat1,
-              latFloat2,
-              lonFloat2,
-              isMetric
-            );
-            expect(actualDistance).toBeLessThanOrEqual(radius + error);
           }
-        });
-
-        it('should return near metric coordinates when radius is undefined', () => {
-          const latitude = parseFloat(faker.address.latitude());
-          const longitude = parseFloat(faker.address.longitude());
-          const isMetric = true;
-
-          const coordinate = faker.address.nearbyGPSCoordinate(
-            [latitude, longitude],
-            undefined,
-            isMetric
-          );
-
-          expect(coordinate.length).toBe(2);
-          expect(coordinate[0]).toBeTypeOf('string');
-          expect(coordinate[1]).toBeTypeOf('string');
-
-          const distanceToTarget =
-            Math.pow(+coordinate[0] - latitude, 2) +
-            Math.pow(+coordinate[1] - longitude, 2);
-
-          expect(distanceToTarget).toBeLessThanOrEqual(
-            100 * 0.002 // 100 km ~= 0.9 degrees, we take 2 degrees
-          );
-        });
-
-        it('should return near non metric coordinates when radius is undefined', () => {
-          const latitude = parseFloat(faker.address.latitude());
-          const longitude = parseFloat(faker.address.longitude());
-          const isMetric = false;
-
-          const coordinate = faker.address.nearbyGPSCoordinate(
-            [latitude, longitude],
-            undefined,
-            isMetric
-          );
-
-          expect(coordinate.length).toBe(2);
-          expect(coordinate[0]).toBeTypeOf('string');
-          expect(coordinate[1]).toBeTypeOf('string');
-
-          // const distanceToTarget =
-          //   Math.pow(coordinate[0] - latitude, 2) +
-          //   Math.pow(coordinate[1] - longitude, 2);
-
-          // TODO @Shinigami92 2022-01-27: Investigate why this test sometimes fails
-          // expect(distanceToTarget).toBeLessThanOrEqual(
-          //   100 * 0.002 * 1.6093444978925633 // 100 miles to km ~= 0.9 degrees, we take 2 degrees
-          // );
-        });
+        }
       });
     }
   });

@@ -104,16 +104,19 @@ export class Random {
    * @example
    * faker.random.arrayElement() // 'b'
    * faker.random.arrayElement(['cat', 'dog', 'mouse']) // 'dog'
+   *
+   * @deprecated
    */
   arrayElement<T = string>(
     array: ReadonlyArray<T> = ['a', 'b', 'c'] as unknown as ReadonlyArray<T>
   ): T {
-    const index =
-      array.length > 1
-        ? this.faker.datatype.number({ max: array.length - 1 })
-        : 0;
-
-    return array[index];
+    deprecated({
+      deprecated: 'faker.random.arrayElement()',
+      proposed: 'faker.helpers.arrayElement()',
+      since: 'v6.3.0',
+      until: 'v7.0.0',
+    });
+    return this.faker.helpers.arrayElement(array);
   }
 
   /**
@@ -129,57 +132,59 @@ export class Random {
    * faker.random.arrayElements() // ['b', 'c']
    * faker.random.arrayElements(['cat', 'dog', 'mouse']) // ['mouse', 'cat']
    * faker.random.arrayElements([1, 2, 3, 4, 5], 2) // [4, 2]
+   *
+   * @deprecated
    */
   arrayElements<T>(
     array: ReadonlyArray<T> = ['a', 'b', 'c'] as unknown as ReadonlyArray<T>,
     count?: number
   ): T[] {
-    if (typeof count !== 'number') {
-      count = this.faker.datatype.number({ min: 1, max: array.length });
-    } else if (count > array.length) {
-      count = array.length;
-    } else if (count < 0) {
-      count = 0;
-    }
-
-    const arrayCopy = array.slice(0);
-    let i = array.length;
-    const min = i - count;
-    let temp: T;
-    let index: number;
-
-    while (i-- > min) {
-      index = Math.floor(
-        (i + 1) * this.faker.datatype.float({ min: 0, max: 0.99 })
-      );
-      temp = arrayCopy[index];
-      arrayCopy[index] = arrayCopy[i];
-      arrayCopy[i] = temp;
-    }
-
-    return arrayCopy.slice(min);
+    deprecated({
+      deprecated: 'faker.random.arrayElements()',
+      proposed: 'faker.helpers.arrayElements()',
+      since: 'v6.3.0',
+      until: 'v7.0.0',
+    });
+    return this.faker.helpers.arrayElements(array, count);
   }
 
   /**
-   * Returns a random key or value from given object.
+   * Returns a random key from given object.
    *
    * @template T The type of `Record` to pick from.
    * @template K The keys of `T`.
-   * @param object The object to get the keys or values from.
+   * @param object The object to get the keys from.
    * @param field If this is set to `'key'`, this method will a return a random key of the given instance.
-   * If this is set to `'value'`, this method will a return a random value of the given instance.
-   * Defaults to `'value'`.
+   *
+   * @see faker.helpers.objectKey()
    *
    * @example
    * const object = { keyA: 'valueA', keyB: 42 };
-   * faker.random.objectElement(object) // 42
    * faker.random.objectElement(object, 'key') // 'keyB'
-   * faker.random.objectElement(object, 'value') // 'valueA'
+   *
+   * @deprecated
    */
   objectElement<T extends Record<string, unknown>, K extends keyof T>(
     object: T,
     field: 'key'
   ): K;
+  /**
+   * Returns a random value from given object.
+   *
+   * @template T The type of `Record` to pick from.
+   * @template K The keys of `T`.
+   * @param object The object to get the values from.
+   * @param field If this is set to `'value'`, this method will a return a random value of the given instance.
+   *
+   * @see faker.helpers.objectValue()
+   *
+   * @example
+   * const object = { keyA: 'valueA', keyB: 42 };
+   * faker.random.objectElement(object) // 42
+   * faker.random.objectElement(object, 'value') // 'valueA'
+   *
+   * @deprecated
+   */
   objectElement<T extends Record<string, unknown>, K extends keyof T>(
     object: T,
     field?: unknown
@@ -194,24 +199,56 @@ export class Random {
    * If this is set to `'value'`, this method will a return a random value of the given instance.
    * Defaults to `'value'`.
    *
+   * @see faker.helpers.objectKey()
+   * @see faker.helpers.objectValue()
+   *
    * @example
    * const object = { keyA: 'valueA', keyB: 42 };
    * faker.random.objectElement(object) // 42
    * faker.random.objectElement(object, 'key') // 'keyB'
    * faker.random.objectElement(object, 'value') // 'valueA'
+   *
+   * @deprecated
    */
   objectElement<T extends Record<string, unknown>, K extends keyof T>(
-    object: T,
+    object?: T,
     field?: 'key' | 'value'
   ): K | T[K];
+  /**
+   * Returns a random key or value from given object.
+   *
+   * @template T The type of `Record` to pick from.
+   * @template K The keys of `T`.
+   * @param object The object to get the keys or values from.
+   * @param field If this is set to `'key'`, this method will a return a random key of the given instance.
+   * If this is set to `'value'`, this method will a return a random value of the given instance.
+   * Defaults to `'value'`.
+   *
+   * @see faker.helpers.objectKey()
+   * @see faker.helpers.objectValue()
+   *
+   * @example
+   * const object = { keyA: 'valueA', keyB: 42 };
+   * faker.random.objectElement(object) // 42
+   * faker.random.objectElement(object, 'key') // 'keyB'
+   * faker.random.objectElement(object, 'value') // 'valueA'
+   *
+   * @deprecated
+   */
   objectElement<T extends Record<string, unknown>, K extends keyof T>(
-    object = { foo: 'bar', too: 'car' } as unknown as T,
-    field = 'value'
+    object: T = { foo: 'bar', too: 'car' } as unknown as T,
+    field: 'key' | 'value' = 'value'
   ): K | T[K] {
-    const array: Array<keyof T> = Object.keys(object);
-    const key = this.arrayElement(array);
-
-    return field === 'key' ? (key as K) : (object[key] as T[K]);
+    const useKey = field === 'key';
+    deprecated({
+      deprecated: `faker.random.objectElement(${useKey ? "obj, 'key'" : ''})`,
+      proposed: `faker.helpers.object${useKey ? 'Key' : 'Value'}()`,
+      since: 'v6.3.0',
+      until: 'v7.0.0',
+    });
+    return field === 'key'
+      ? (this.faker.helpers.objectKey(object) as K)
+      : (this.faker.helpers.objectValue(object) as T[K]);
   }
 
   /**
